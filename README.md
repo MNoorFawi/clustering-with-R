@@ -42,12 +42,30 @@ summary(data)
     ##  3rd Qu.:10656   3rd Qu.: 3554.2   3rd Qu.: 3922.0   3rd Qu.: 1820.2  
     ##  Max.   :92780   Max.   :60869.0   Max.   :40827.0   Max.   :47943.0
 
-Here we can find that except for the first two columns which are categories the rest of the columns need to be scaled. So we scale them and then get the **euclidean distance** between the observations in order to pass it to the **hclust** function to do Hierarchical Clustering ...
+Here we can find that except for the first two columns, which can be categories and can be one-hot encoded if needed but we will neglect them here, the rest of the columns are numeric and need to be scaled or normalized. 
+So we scale them and then get the **euclidean distance** between the observations in order to pass it to the **hclust** function to do Hierarchical Clustering first ...
 
 ``` r
 data[, 1:2] <- apply(data[, 1:2], 2, function(x) as.factor(x))
 vars <- colnames(data)
+
+## to one hot encode factor values and normalize numeric ones if needed
+# cat <- vars[sapply(data[, vars], class) %in% c("factor", "character")]
 num <- vars[sapply(data[, vars], class) %in% c("numeric", "integer")]
+# for (i in cat) {
+#   dict <- unique(data[, i])
+#   for(key in dict){
+#     data[[paste0(i, "_", key)]] <- 1.0 * (data[, i] == key)
+#  }
+# }
+# data[, num] <- apply(data[, num], 2, function(x) {
+#   (x - min(x)) / (max(x) - min(x))
+# })
+# 
+# data <- data[, -which(colnames(data) %in% cat)]
+# cmatrix <- as.matrix(sapply(data[, num], as.numeric))
+
+## but here we will only scale numeric values
 cmatrix <- scale(data[, num])
 head(cmatrix)
 ```
@@ -76,7 +94,8 @@ plot(pfit, labels = FALSE)
 
 ![](clustering_R_files/figure-markdown_github/dist-1.png)
 
-As we can see in the dendrogram plotted, the data can be clustered to different cluster numbers. Hierarchical Clustering tries to minimize the total within sum of squares (WSS) of the clustering, so based on that, it's seen in the dendrogram that the data can be clustered to about 5 clusters. We can see that in the dendrogram with:
+As we can see in the dendrogram plotted, the data can be clustered to different cluster numbers. Hierarchical Clustering with "WARD" method tries to minimize the total within sum of squares (WSS) of the clustering, so based on that, it's seen in the dendrogram that the data can be clustered to about 4 main clusters. 
+We can see that in the dendrogram with:
 
 ``` r
 plot(pfit, labels = FALSE)
@@ -85,7 +104,7 @@ rect.hclust(pfit, k = 4)
 
 ![](clustering_R_files/figure-markdown_github/cut-1.png)
 
-To extract the members of each cluster from the hclust object, we can use cutree().
+To extract the members of each cluster from the hclust object, we can use cutree(). And we can then visualize the data with these clusters.
 
 ``` r
 hcl_groups <- factor(cutree(pfit, k = 4))
@@ -103,6 +122,13 @@ ggplot(data, aes(x = log(Grocery),
 ```
 
 ![](clustering_R_files/figure-markdown_github/hcl-1.png)
+
+###### We can clearly see that Milk and Grocery have a linear relationship that is of a strong positive correlation coefficient, so we expect them to be together in one of the clusters.
+
+#### Bootsrap Evaluation of the Clusters.
+Clustering algorithms don't have an evaluation metric like other supervised algorithms. So it is sometimes hard to tell if the clusters suggested by the algorithm express a real pattern in the data or it is just a random guessing by the algorithm.
+**fpc** package has a function which can help in this. **clusterboot()**, this function does **Bootstrap Evaluation** to the clust
+
 
 ``` r
 ## Bootstrap Evaluation of Clusters
