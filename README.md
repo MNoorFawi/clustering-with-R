@@ -127,8 +127,8 @@ ggplot(data, aes(x = log(Grocery),
 
 #### Bootsrap Evaluation of the Clusters.
 Clustering algorithms don't have an evaluation metric like other supervised algorithms. So it is sometimes hard to tell if the clusters suggested by the algorithm express a real pattern in the data or it is just a random guessing by the algorithm.
-**fpc** package has a function which can help in this. **clusterboot()**, this function does **Bootstrap Evaluation** to the clust
-
+**fpc** package has a function which can help in this. **clusterboot()**, this function does **Bootstrap Evaluation** to the clusters suggested, i.e. clustering data as usual, then drawing new datasets (of the same size as the original) by resampling the original dataset with replacement then clustering the new dataset.
+clusterboot() gives two important values; **bootmean** which measures how stable the cluster is, the more the mean the more stable the cluster is. And **bootbrd** which tells the number of times the cluster is dissolved or disappered in the process, the less the number, the more stable the cluster is.
 
 ``` r
 ## Bootstrap Evaluation of Clusters
@@ -149,6 +149,16 @@ cboot_hclust$bootbrd
 
     ## [1] 29  5 37 58
 
+We can see that cluster two is the most stable among them with and the second most stable one is cluster one.
+This can tell that other clusters may not be good clusters to cluster the data to.
+Let's run another clustering algorithm on the data to see what it will give.
+
+### Kmeans Algorithm
+Now we will run **kmeans** algorithm over the dataset but not with the usual kmeans() function, as it requires setting a priori the number of clusters and now we aren't so sure about it.
+So we will run the algorithm with another function from fpc again, **kmeansruns()**.
+This function has major advantages; we can set a range of Ks and the function will give us the best K according to two different critieria, **Calinski Harabasz Index (ch)** that measures how separately the clusters are from each others, and **Average Silhouette Width (asw)** that measures how tightly grouped all the points in the cluster are. So we will be looking for a K value with the greatest number of each one.
+We will run kmeansruns with both criteria over 10 Ks and compare the output.
+
 ``` r
 ## picking K for kmeans
 clustering_ch <- kmeansruns(cmatrix, krange = 1:10, criterion = "ch")
@@ -163,6 +173,8 @@ clustering_asw$bestk
 ```
 
     ## [1] 2
+
+Ch tells that the best K is 2 while the best K suggested by asw is 10. Let's plot these values to better explore them.
 
 ``` r
 ## plot it
@@ -182,6 +194,13 @@ ggplot(criteria, aes(x = k, y = score, col = measure)) +
 
 ![](clustering_R_files/figure-markdown_github/plot%20chasw-1.png)
 
+Here we can see that at 2 is by far the best value of asw, while with ch, starting from 2 the values are growing after declining a little in 3 but with no big difference. So this can tell that the best number of clusters is 2. 
+N.B. 3 Ks may be also the proper number of K, as cluster 1 and 3 from clusterboot() with hclust were very close in values to each other.
+N.B. the growing values of ch might tell that the data can be clustered deeper into micro clusters.
+Here, I will go with 3 just to see where the third cluster might be in the data.
+
+We will run clusterboot again with kmeans and check bootmean and bootbrd.
+
 ``` r
 ## clusterboot() revisited with kmeans
 kmeans_cboot <- clusterboot(cmatrix, clustermethod = kmeansCBI,
@@ -199,6 +218,11 @@ kmeans_cboot$bootbrd
 ```
 
     ## [1] 57  0 84
+
+As with hclust, cluster 2 is the most stable and cluster one is the second most stable while cluster 3 is the least.
+Let's visualize the clusters together.
+
+We will use **Principal Component Analysis (pca)** to reduce the dimensions of the dataset into 2 main dimensions in order to visualize it.
 
 ``` r
 ## Visualizing Clusters
@@ -218,6 +242,10 @@ ggplot(visual, aes(x = PC1, y = PC2)) +
 
 ![](clustering_R_files/figure-markdown_github/visual-1.png)
 
+As expected, cluster 1 and 2 are so close to each other, with 2 more densed and grouped together, and cluster 3 are so far away from other clusters and also the points are separated from each other inside the cluster, this is known as **other cluster**
+
+Let's now visualize the clusters with **ggbiplot** which gives more expressiveness to the clusters visualization.
+
 ``` r
 suppressMessages(library(ggbiplot))
 ggbiplot(pca, obs.scale = 1,
@@ -230,3 +258,6 @@ ggbiplot(pca, obs.scale = 1,
 
 ![](clustering_R_files/figure-markdown_github/ggbiplt-1.png)
 
+As we expected earlier, Grocery and Milk are together in the same cluster along with Detergents_Paper in cluster 1, while cluster 2 has Delicassen, Fresh and Frozen.
+
+###### FINAL NOTE: clustering algorithms can be interepreted differently depending on the domain knowledge of who analyzes the data and the data itself.
