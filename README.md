@@ -1,7 +1,7 @@
 clustering with R
 ================
 
-Clustering with R
+[Clustering with R](https://github.com/MNoorFawi/clustering-with-R)
 -----------------
 
 We will use "Wholesale customers data.csv" at <https://archive.ics.uci.edu/ml/machine-learning-databases/00292/> to perform **Hierarchical** and **Kmeans Clustering** using **R**.
